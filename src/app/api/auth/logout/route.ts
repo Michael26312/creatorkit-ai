@@ -1,20 +1,14 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
-    await supabase.auth.signOut();
+    // TODO: Validate session/JWT token
+    // TODO: Clear session/JWT token
 
-    return NextResponse.json(
-      { message: 'Logged out successfully' },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: 'Logged out successfully' });
   } catch (error) {
-    console.error('Logout error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Logout failed' },
       { status: 500 }
     );
   }

@@ -1,42 +1,46 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
+const prisma = new PrismaClient();
+
+export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { email, password } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: 'Missing email or password' },
+        { error: 'Email and password are required' },
         { status: 400 }
       );
     }
 
-    const supabase = createRouteHandlerClient({ cookies });
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    // TODO: Implement actual login with password hashing verification
+    // This is a placeholder - implement proper authentication
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { subscription: true },
     });
 
-    if (error) {
+    if (!user) {
       return NextResponse.json(
-        { error: error.message },
+        { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    return NextResponse.json(
-      {
-        user: data.user,
-        session: data.session,
+    // TODO: Create session/JWT token
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
       },
-      { status: 200 }
-    );
+      subscription: user.subscription,
+    });
   } catch (error) {
-    console.error('Login error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Login failed' },
       { status: 500 }
     );
   }

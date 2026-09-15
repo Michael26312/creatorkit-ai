@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-brand-50: #f8f6fc;
+    --color-brand-100: #f0ecf8;
+    --color-brand-200: #e1d9f0;
+    --color-brand-300: #c9bae3;
+    --color-brand-400: #a890d0;
+    --color-brand-500: #8b6ec0;
+    --color-brand-600: #7c5aad;
+    --color-brand-700: #6a4799;
+    --color-brand-800: #593d85;
+    --color-brand-900: #4a3271;
+  }
+}
+
+@layer components {
+  .container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}

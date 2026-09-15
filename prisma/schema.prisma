@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,206 +11,46 @@ datasource db {
 }
 
 model User {
-  id                String      @id @default(cuid())
-  email             String      @unique
-  emailVerified     DateTime?
-  passwordHash      String?
-  firstName         String?
-  lastName          String?
-  avatar            String?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  lastLoginAt       DateTime?
-  
-  // Relations
-  profile           UserProfile?
-  subscription      Subscription?
-  projects          Project[]
-  generations       Generation[]
-  brandProfiles     BrandProfile[]
-  usage             Usage?
-  referrals         Referral[] @relation("referrer")
-  referredBy        Referral? @relation("referred", fields: [referredByRefId], references: [id])
-  referredByRefId   String?
-  referralEvents    ReferralEvent[]
-  sharedContent     SharedContent[]
-  
-  @@index([email])
-}
-
-model UserProfile {
-  id                String      @id @default(cuid())
-  userId            String      @unique
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  industry          String?
-  targetAudience    String?
-  contentTypes      String[]    @default([])
-  preferences       Json        @default("{}")
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id            String     @id @default(cuid())
+  email         String     @unique
+  passwordHash  String
+  firstName     String
+  lastName      String?
+  avatar        String?
+  subscription  Subscription?
+  projects      Project[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
 
 model Subscription {
-  id                String      @id @default(cuid())
-  userId            String      @unique
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan              String      @default("free") // free, creator, pro, agency
-  status            String      @default("active") // active, canceled, expired
-  currentPeriodStart DateTime?
-  currentPeriodEnd  DateTime?
-  canceledAt        DateTime?
-  stripeCustomerId  String?
-  stripeSubscriptionId String?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-}
-
-model Usage {
-  id                String      @id @default(cuid())
-  userId            String      @unique
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  currentMonth      DateTime    @default(now())
-  generationsUsed   Int         @default(0)
-  projectsCreated   Int         @default(0)
-  tokensUsed        Int         @default(0)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id            String     @id @default(cuid())
+  userId        String     @unique
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan          String     @default("free") // free, creator, pro, agency
+  status        String     @default("active")
+  generationsUsed Int      @default(0)
+  monthlyLimit  Int        @default(5)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
 
 model Project {
-  id                String      @id @default(cuid())
-  userId            String
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title             String
-  description       String?
-  contentType       String      // youtube-transcript, podcast, blog, social, idea, etc.
-  originalInput     String      @db.Text
-  brandProfileId    String?
-  brandProfile      BrandProfile? @relation(fields: [brandProfileId], references: [id])
-  status            String      @default("processing") // processing, completed, failed
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  
-  // Relations
-  generations       Generation[]
-  
-  @@index([userId])
-  @@index([createdAt])
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  contentType   String
+  generations   Generation[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
 
 model Generation {
-  id                String      @id @default(cuid())
-  projectId         String
-  project           Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  userId            String
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  generationType    String      // social_posts, hooks, video_titles, seo_content, etc.
-  content           Json        // Structured generated content
-  tone              String      @default("professional")
-  status            String      @default("completed")
-  tokensUsed        Int         @default(0)
-  aiModel           String      @default("gpt-4-turbo")
-  regenerationCount Int         @default(0)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  
-  @@index([projectId])
-  @@index([userId])
-}
-
-model BrandProfile {
-  id                String      @id @default(cuid())
-  userId            String
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name              String
-  description       String      @db.Text
-  targetAudience    String      @db.Text
-  industry          String
-  tone              String      // professional, friendly, educational, funny, bold, inspirational, conversational, luxury, minimalist
-  preferredWords    String[]    @default([])
-  wordsToAvoid      String[]    @default([])
-  ctaStyle          String
-  writingStyle      String      @db.Text
-  isDefault         Boolean     @default(false)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  
-  // Relations
-  projects          Project[]
-  
-  @@index([userId])
-}
-
-model Referral {
-  id                String      @id @default(cuid())
-  referrerId        String
-  referrer          User        @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
-  referredUserId    String
-  referredUser      User        @relation("referred", fields: [referredUserId], references: [id], onDelete: Cascade)
-  referralCode      String      @unique
-  status            String      @default("pending") // pending, completed
-  creditsEarned     Int         @default(0)
-  createdAt         DateTime    @default(now())
-  completedAt       DateTime?
-  
-  @@index([referrerId])
-  @@index([referralCode])
-}
-
-model ReferralEvent {
-  id                String      @id @default(cuid())
-  userId            String
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  eventType         String      // click, signup, first_generation, subscription
-  referralCode      String
-  metadata          Json        @default("{}")
-  createdAt         DateTime    @default(now())
-  
-  @@index([userId])
-  @@index([referralCode])
-}
-
-model SharedContent {
-  id                String      @id @default(cuid())
-  userId            String
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  generationId      String
-  title             String
-  content           Json        @db.Json
-  shareToken        String      @unique
-  viewCount         Int         @default(0)
-  isPublic          Boolean     @default(true)
-  expiresAt         DateTime?
-  createdAt         DateTime    @default(now())
-  
-  @@index([shareToken])
-  @@index([userId])
-}
-
-model SeoPage {
-  id                String      @id @default(cuid())
-  slug              String      @unique
-  title             String
-  metaDescription   String      @db.Text
-  h1                String
-  content           String      @db.Text
-  toolType          String      // hook-generator, title-generator, etc.
-  category          String      // social, video, seo, growth
-  keywords          String[]    @default([])
-  internalLinks     String[]    @default([])
-  isPublished       Boolean     @default(true)
-  viewCount         Int         @default(0)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  
-  @@index([slug])
-  @@index([toolType])
-}
-
-model AdminSettings {
-  id                String      @id @default(cuid())
-  setting           String      @unique
-  value             Json        @default("{}")
-  description       String?
-  updatedAt         DateTime    @updatedAt
+  id            String     @id @default(cuid())
+  projectId     String
+  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  input         String     @db.Text
+  content       Json
+  createdAt     DateTime   @default(now())
 }

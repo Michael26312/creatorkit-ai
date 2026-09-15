@@ -1,77 +1,57 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 
-export async function POST(req: NextRequest) {
+const prisma = new PrismaClient();
+
+export async function POST(request: NextRequest) {
   try {
-    const { email, password, firstName, lastName } = await req.json();
+    const { email, password, firstName, lastName } = await request.json();
 
-    // Validate input
     if (!email || !password || !firstName) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Email, password, and first name are required' },
         { status: 400 }
       );
     }
 
-    // Create Supabase auth user
-    const supabase = createRouteHandlerClient({ cookies });
-    const { data: { user }, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
     });
 
-    if (authError) {
+    if (existingUser) {
       return NextResponse.json(
-        { error: authError.message },
+        { error: 'Email already in use' },
         { status: 400 }
       );
     }
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Failed to create user' },
-        { status: 500 }
-      );
-    }
-
-    // Create user in database
-    const dbUser = await prisma.user.create({
+    // TODO: Hash password before storing
+    // TODO: Send verification email
+    const user = await prisma.user.create({
       data: {
-        id: user.id,
         email,
         firstName,
-        lastName: lastName || null,
-        profile: {
-          create: {},
-        },
+        lastName,
+        passwordHash: password, // TODO: Hash this properly
         subscription: {
           create: {
             plan: 'free',
+            status: 'active',
           },
         },
-        usage: {
-          create: {},
-        },
       },
-      include: {
-        profile: true,
-        subscription: true,
-      },
+      include: { subscription: true },
     });
 
     return NextResponse.json(
-      {
-        user: dbUser,
-        message: 'Signup successful. Please check your email to verify your account.',
-      },
+      { message: 'Account created. Please verify your email.' },
       { status: 201 }
     );
   } catch (error) {
     console.error('Signup error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Signup failed' },
       { status: 500 }
     );
   }
